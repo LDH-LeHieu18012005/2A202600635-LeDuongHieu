@@ -12,9 +12,14 @@ Usage in nodes:
 from __future__ import annotations
 
 import os
+from typing import Any
+
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
-def get_llm(model: str | None = None, temperature: float = 0.0):
+def get_llm(model: str | None = None, temperature: float = 0.0) -> Any:  # noqa: ANN401
     """Create an LLM client from environment configuration.
 
     Checks for API keys in this order:
@@ -41,7 +46,7 @@ def get_llm(model: str | None = None, temperature: float = 0.0):
         except ImportError as exc:
             raise RuntimeError("Install: pip install langchain-openai") from exc
         return ChatOpenAI(
-            model=model or os.getenv("LLM_MODEL", "gpt-4o-mini"),
+            model=model or os.getenv("LLM_MODEL", "gpt-4o-mini"),  # type: ignore
             temperature=temperature,
         )
 
@@ -51,7 +56,7 @@ def get_llm(model: str | None = None, temperature: float = 0.0):
         except ImportError as exc:
             raise RuntimeError("Install: pip install langchain-anthropic") from exc
         return ChatAnthropic(
-            model=model or os.getenv("LLM_MODEL", "claude-sonnet-4-20250514"),
+            model=model or os.getenv("LLM_MODEL", "claude-sonnet-4-20250514"),  # type: ignore
             temperature=temperature,
         )
 

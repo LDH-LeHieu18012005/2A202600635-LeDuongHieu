@@ -1,28 +1,4 @@
-"""Report generation helper.
-
-TODO(student): implement report rendering using MetricsReport data
-and the template in reports/lab_report_template.md.
-"""
-# ruff: noqa: E501
-
-from __future__ import annotations
-
-from pathlib import Path
-
-from .metrics import MetricsReport
-
-
-def render_report(metrics: MetricsReport) -> str:
-    """Render a complete lab report from metrics data."""
-    scenario_rows = []
-    for item in metrics.scenario_metrics:
-        success_str = "Yes" if item.success else "No"
-        scenario_rows.append(
-            f"| {item.scenario_id} | {item.expected_route} | {item.actual_route} | {success_str} | {item.retry_count} | {item.interrupt_count} |"
-        )
-    scenario_table = "\n".join(scenario_rows)
-    
-    report = f"""# Day 08 Lab Report
+# Day 08 Lab Report
 
 ## 1. Team / student
 
@@ -33,6 +9,7 @@ def render_report(metrics: MetricsReport) -> str:
 ## 2. Architecture
 
 The system utilizes a structured **LangGraph StateGraph** to process support tickets. The workflow graph comprises 11 distinct nodes and conditional routing logic:
+
 - **intake**: Normalizes and pre-processes input queries.
 - **classify**: Leverages LLM structured output to categorize intent into one of five routes: `simple`, `tool`, `missing_info`, `risky`, or `error`.
 - **tool**: Executes backend actions, including simulating transient timeouts/failures for testing robustness.
@@ -49,37 +26,44 @@ The system utilizes a structured **LangGraph StateGraph** to process support tic
 
 The state is managed using `AgentState`, a typed dictionary defining the current context:
 
-| Field | Reducer | Why |
-|---|---|---|
-| thread_id | overwrite | Identifies the execution flow session. |
-| scenario_id | overwrite | Identifies the grading scenario ID. |
-| query | overwrite | The original ticket query. |
-| route | overwrite | The current route target classified by the LLM. |
-| risk_level | overwrite | The risk level ('high' or 'low'). |
-| attempt | overwrite | The current retry attempt counter. |
-| max_attempts | overwrite | The maximum permitted retry attempts. |
-| final_answer | overwrite | Holds the final customer-facing output message. |
+| Field             | Reducer   | Why                                                            |
+| ----------------- | --------- | -------------------------------------------------------------- |
+| thread_id         | overwrite | Identifies the execution flow session.                         |
+| scenario_id       | overwrite | Identifies the grading scenario ID.                            |
+| query             | overwrite | The original ticket query.                                     |
+| route             | overwrite | The current route target classified by the LLM.                |
+| risk_level        | overwrite | The risk level ('high' or 'low').                              |
+| attempt           | overwrite | The current retry attempt counter.                             |
+| max_attempts      | overwrite | The maximum permitted retry attempts.                          |
+| final_answer      | overwrite | Holds the final customer-facing output message.                |
 | evaluation_result | overwrite | Latest tool execution evaluation ('success' or 'needs_retry'). |
-| pending_question | overwrite | Latest clarification request question. |
-| proposed_action | overwrite | Description of the risky operation needing verification. |
-| approval | overwrite | Record of the human approval decision. |
-| messages | append | audit conversation/events |
-| tool_results | append | Accumulates results of tool invocations. |
-| errors | append | Log of errors encountered. |
-| events | append | audit conversation/events |
+| pending_question  | overwrite | Latest clarification request question.                         |
+| proposed_action   | overwrite | Description of the risky operation needing verification.       |
+| approval          | overwrite | Record of the human approval decision.                         |
+| messages          | append    | audit conversation/events                                      |
+| tool_results      | append    | Accumulates results of tool invocations.                       |
+| errors            | append    | Log of errors encountered.                                     |
+| events            | append    | audit conversation/events                                      |
 
 ## 4. Scenario results
 
 **Summary Metrics:**
-- **Total Scenarios:** {metrics.total_scenarios}
-- **Success Rate:** {metrics.success_rate:.2%}
-- **Average Nodes Visited:** {metrics.avg_nodes_visited:.1f}
-- **Total Retries:** {metrics.total_retries}
-- **Total Interrupts:** {metrics.total_interrupts}
 
-| Scenario | Expected route | Actual route | Success | Retries | Interrupts |
-|---|---|---|---:|---:|---:|
-{scenario_table}
+- **Total Scenarios:** 7
+- **Success Rate:** 100.00%
+- **Average Nodes Visited:** 6.4
+- **Total Retries:** 3
+- **Total Interrupts:** 2
+
+| Scenario        | Expected route | Actual route | Success | Retries | Interrupts |
+| --------------- | -------------- | ------------ | ------: | ------: | ---------: |
+| S01_simple      | simple         | simple       |     Yes |       0 |          0 |
+| S02_tool        | tool           | tool         |     Yes |       0 |          0 |
+| S03_missing     | missing_info   | missing_info |     Yes |       0 |          0 |
+| S04_risky       | risky          | risky        |     Yes |       0 |          1 |
+| S05_error       | error          | error        |     Yes |       2 |          0 |
+| S06_delete      | risky          | risky        |     Yes |       0 |          1 |
+| S07_dead_letter | error          | error        |     Yes |       1 |          0 |
 
 ## 5. Failure analysis
 
@@ -99,14 +83,6 @@ We implemented a SQLite-backed checkpointer (`SqliteSaver`). By supplying a uniq
 ## 8. Improvement plan
 
 If we had one more day, we would:
+
 1. Productionize the real-time UI by building a Streamlit dashboard showing active tickets and permitting reviewers to review, comment, and click Approve/Reject directly.
 2. Add comprehensive distributed tracing using langsmith to observe agent execution latency and costs.
-"""
-    return report
-
-
-def write_report(metrics: MetricsReport, output_path: str | Path) -> None:
-    """Write the rendered report to a file."""
-    path = Path(output_path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(render_report(metrics), encoding="utf-8")
